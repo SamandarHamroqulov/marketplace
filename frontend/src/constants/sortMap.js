@@ -1,5 +1,5 @@
 export const SORT_MAP = {
-  rating: 'createdAt',
+  rating: 'rating',
   'price-asc': 'price_asc',
   'price-desc': 'price_desc',
 };

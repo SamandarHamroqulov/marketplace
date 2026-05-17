@@ -51,7 +51,7 @@ export default function CheckoutPage({ cart, setCart, setPage }) {
         setSelectedAddressId(data[0].id);
         setSelectedAddress(data[0]);
       }
-    } catch {
+    } catch (_e) {
       setAddresses([]);
     }
   };

@@ -22,6 +22,8 @@ export default function AdminPage({ setPage }) {
     quantity: '1',
     brand: '',
     categoryId: '',
+    colors: '',
+    storageOptions: '',
   });
 
   const load = async () => {
@@ -85,6 +87,12 @@ export default function AdminPage({ setPage }) {
         quantity: prodForm.quantity,
         brand: prodForm.brand || undefined,
         categoryId: prodForm.categoryId,
+        colors: prodForm.colors
+          ? JSON.stringify(prodForm.colors.split(',').map((c) => c.trim()).filter(Boolean))
+          : undefined,
+        storageOptions: prodForm.storageOptions
+          ? JSON.stringify(prodForm.storageOptions.split(',').map((s) => s.trim()).filter(Boolean))
+          : undefined,
         images: files,
       });
 
@@ -96,6 +104,8 @@ export default function AdminPage({ setPage }) {
         quantity: '1',
         brand: '',
         categoryId: '',
+        colors: '',
+        storageOptions: '',
       });
       if (fileInput) fileInput.value = '';
       setMessage('Product created');
@@ -223,6 +233,16 @@ export default function AdminPage({ setPage }) {
                 ))}
               </select>
               <input type="file" id="product-images" multiple accept="image/*" style={{ padding: '4px' }} />
+              <input
+                placeholder="Colors (vergul bilan: #ff0000, #00ff00)"
+                value={prodForm.colors}
+                onChange={(e) => setProdForm({ ...prodForm, colors: e.target.value })}
+              />
+              <input
+                placeholder="Xotira variantlari (vergul bilan: 128GB, 256GB, 512GB)"
+                value={prodForm.storageOptions}
+                onChange={(e) => setProdForm({ ...prodForm, storageOptions: e.target.value })}
+              />
               <textarea className="full" placeholder="Description" value={prodForm.description} onChange={(e) => setProdForm({ ...prodForm, description: e.target.value })} required />
               <button type="submit" className="auth-btn full">Create product</button>
             </form>

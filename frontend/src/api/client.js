@@ -2,11 +2,59 @@ const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 export const API_ORIGIN =
   BASE_URL.startsWith('http') ? BASE_URL.replace(/\/api\/?$/, '') : '';
 
+// Token auto-refresh: accessToken 15 daqiqada tugaydi, shuning uchun
+// har 14 daqiqada yangilaymiz (birinchi murojaat yoki sahifa ochilganda)
+let _refreshTimer = null;
+
+const scheduleTokenRefresh = () => {
+  if (_refreshTimer) clearTimeout(_refreshTimer);
+  _refreshTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/auth/refresh`, { method: 'POST', credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.accessToken) localStorage.setItem('token', data.accessToken);
+        scheduleTokenRefresh(); // keyingisini rejalashtir
+      } else {
+        clearSession();
+      }
+    } catch (_e) {
+      // tarmoq xatosi — keyingi murojaatda qayta urinadi
+    }
+  }, 14 * 60 * 1000); // 14 daqiqa
+};
+
 const request = async (endpoint, options = {}) => {
   const token = localStorage.getItem('token');
   const headers = { 'Content-Type': 'application/json', ...options.headers };
   if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`${BASE_URL}${endpoint}`, { ...options, headers });
+  const res = await fetch(`${BASE_URL}${endpoint}`, { ...options, headers, credentials: 'include' });
+  if (res.status === 401) {
+    // Token muddati tugagan — refresh urinib ko'r
+    try {
+      const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, { method: 'POST', credentials: 'include' });
+      if (refreshRes.ok) {
+        const refreshData = await refreshRes.json();
+        if (refreshData.accessToken) {
+          localStorage.setItem('token', refreshData.accessToken);
+          scheduleTokenRefresh();
+          // Asl murojaatni qayta yubor
+          headers.Authorization = `Bearer ${refreshData.accessToken}`;
+          const retryRes = await fetch(`${BASE_URL}${endpoint}`, { ...options, headers, credentials: 'include' });
+          if (!retryRes.ok) {
+            const err = await retryRes.json().catch(() => ({}));
+            throw new Error(Array.isArray(err.message) ? err.message.join(', ') : err.message || `HTTP ${retryRes.status}`);
+          }
+          return retryRes.json();
+        }
+      }
+    } catch (refreshErr) {
+      // refresh ham muvaffaqiyatsiz — sessiyani tozala
+    }
+    clearSession();
+    window.dispatchEvent(new CustomEvent('auth:expired'));
+    throw new Error('Session expired. Please log in again.');
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(Array.isArray(err.message) ? err.message.join(', ') : err.message || `HTTP ${res.status}`);
@@ -47,7 +95,7 @@ export const clearSession = () => {
 export const getStoredUser = () => {
   try {
     return JSON.parse(localStorage.getItem('user') || 'null');
-  } catch {
+  } catch (_e) {
     return null;
   }
 };
@@ -74,6 +122,7 @@ export const api = {
   login: async (email, password) => {
     const data = await request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
     saveSession(data);
+    scheduleTokenRefresh();
     return data;
   },
   register: (body) => request('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
@@ -91,6 +140,9 @@ export const api = {
   getAddresses: () => request('/address/my-addresses'),
   createAddress: (body) => request('/address', { method: 'POST', body: JSON.stringify(body) }),
   checkout: (body) => request('/orders/checkout', { method: 'POST', body: JSON.stringify(body) }),
+  getWishlist: () => request('/wishlist'),
+  toggleWishlist: (productId) => request(`/wishlist/${productId}`, { method: 'POST' }),
+  removeFromWishlist: (productId) => request(`/wishlist/${productId}`, { method: 'DELETE' }),
   createCategory: (name, description = '') => {
     const fd = new FormData();
     fd.append('name', name);
@@ -115,3 +167,8 @@ export const api = {
 };
 
 export default api;
+
+// Sahifa ochilganda token mavjud bo'lsa refresh jadvalini boshlash
+if (localStorage.getItem('token')) {
+  scheduleTokenRefresh();
+}

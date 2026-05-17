@@ -6,13 +6,19 @@ import Icons from '../components/Icons.jsx';
 import ProductCard from '../components/ProductCard.jsx';
 import Footer from '../components/Footer.jsx';
 
-const RATING_LABELS = [
-  { label: 'Excellent', count: 100 },
-  { label: 'Good', count: 11 },
-  { label: 'Average', count: 3 },
-  { label: 'Below Average', count: 8 },
-  { label: 'Poor', count: 1 },
-];
+const RATING_LEVEL_LABELS = ['Poor', 'Below Average', 'Average', 'Good', 'Excellent'];
+
+function computeRatingLabels(reviews) {
+  const counts = [0, 0, 0, 0, 0]; // index 0 = 1 yulduz, 4 = 5 yulduz
+  reviews.forEach((r) => {
+    const idx = Math.min(Math.max(Math.round(r.rating) - 1, 0), 4);
+    counts[idx]++;
+  });
+  // 5 yulduzdan 1 yulduzga qadar (Excellent → Poor)
+  return counts
+    .map((count, i) => ({ label: RATING_LEVEL_LABELS[i], count, star: i + 1 }))
+    .reverse();
+}
 
 export default function ProductDetail({
   product,
@@ -29,7 +35,13 @@ export default function ProductDetail({
   const [related, setRelated] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [comment, setComment] = useState('');
+  const [reviewRating, setReviewRating] = useState(5);
   const [showAllSpecs, setShowAllSpecs] = useState(false);
+
+  const ratingLabels = computeRatingLabels(reviews);
+  const avgRating = reviews.length
+    ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
+    : product.rating;
 
   const thumbImages = product.images?.length ? product.images : [product.image];
 
@@ -48,11 +60,12 @@ export default function ProductDetail({
     e.preventDefault();
     if (!comment.trim()) return;
     try {
-      await api.createReview({ productId: product.id, rating: 5, comment });
+      await api.createReview({ productId: product.id, rating: reviewRating, comment });
       const items = await api.getReviews(product.id);
       setReviews(items.map(mapReview));
       setComment('');
-    } catch {
+      setReviewRating(5);
+    } catch (err) {
       setComment('');
     }
   };
@@ -222,8 +235,8 @@ export default function ProductDetail({
             <div className="reviews-header">
               <div>
                 <div className="reviews-score">
-                  {product.rating}
-                  <span>of {product.reviews || reviews.length || 125} reviews</span>
+                  {avgRating}
+                  <span>of {reviews.length} reviews</span>
                 </div>
                 <div className="reviews-stars">
                   {[1, 2, 3, 4, 5].map((i) => (
@@ -232,11 +245,11 @@ export default function ProductDetail({
                 </div>
               </div>
               <div className="rating-bars">
-                {RATING_LABELS.map((r) => (
+                {ratingLabels.map((r) => (
                   <div key={r.label} className="rating-bar-row">
                     <span>{r.label}</span>
                     <div className="rating-bar-track">
-                      <div className="rating-bar-fill" style={{ width: `${(r.count / 100) * 100}%` }} />
+                      <div className="rating-bar-fill" style={{ width: reviews.length ? `${(r.count / reviews.length) * 100}%` : '0%' }} />
                     </div>
                     <span>{r.count}</span>
                   </div>
@@ -244,6 +257,19 @@ export default function ProductDetail({
               </div>
             </div>
             <form onSubmit={handleSubmitReview}>
+              <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setReviewRating(star)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: star <= reviewRating ? '#f59e0b' : '#d1d5db' }}
+                    aria-label={`${star} star`}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
               <input
                 className="review-comment-input"
                 placeholder="Leave Comment"

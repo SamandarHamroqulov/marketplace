@@ -19,7 +19,7 @@ export function AuthProvider({ children }) {
       const u = { id: me.id, fullName: me.fullName, email: me.email, role: me.role, isVerified: me.isVerified };
       setUser(u);
       localStorage.setItem('user', JSON.stringify(u));
-    } catch {
+    } catch (_e) {
       clearSession();
       setUser(null);
     } finally {
@@ -30,6 +30,15 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     refreshUser();
   }, [refreshUser]);
+
+  useEffect(() => {
+    const handleExpired = () => {
+      clearSession();
+      setUser(null);
+    };
+    window.addEventListener('auth:expired', handleExpired);
+    return () => window.removeEventListener('auth:expired', handleExpired);
+  }, []);
 
   const login = async (email, password) => {
     const data = await api.login(email, password);

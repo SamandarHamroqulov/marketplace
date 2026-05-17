@@ -20,7 +20,6 @@ export class ProductService {
 
   async clearCache(id?: string) {
     await this.cacheManager.del('/api/products/all');
-    await this.cacheManager.del('/api/products/meta/brands');
     if (id) {
       await this.cacheManager.del(`/api/products/${id}`);
     }
@@ -45,14 +44,14 @@ export class ProductService {
       .leftJoinAndSelect('product.images', 'images')
       .leftJoin('product.reviews', 'review')
       .addSelect('COALESCE(AVG(review.rating), 0)', 'avgRating')
-      .addSelect('COUNT(review.id)', 'reviewCount')
+      .addSelect('COUNT(DISTINCT review.id)', 'reviewCount')
       .groupBy('product.id')
       .addGroupBy('category.id')
       .addGroupBy('images.id');
 
     if (query.search) {
       qb.andWhere(
-        '(product.title ILIKE :search OR product.description ILIKE :search OR product.brand ILIKE :search)',
+        '(product.title ILIKE :search OR product.description ILIKE :search)',
         { search: `%${query.search}%` },
       );
     }
@@ -84,11 +83,11 @@ export class ProductService {
       case 'price_desc':
         qb.orderBy('product.price', 'DESC');
         break;
-      case 'rating':
-        qb.orderBy('avgRating', 'DESC');
-        break;
       case 'title':
         qb.orderBy('product.title', 'ASC');
+        break;
+      case 'rating':
+        qb.orderBy('avgRating', 'DESC');
         break;
       default:
         qb.orderBy('product.createdAt', 'DESC');
@@ -98,17 +97,26 @@ export class ProductService {
     const limit = query.limit ?? 20;
     qb.skip((page - 1) * limit).take(limit);
 
-    const rawAndEntities = await qb.getRawAndEntities();
-    const total = await qb.getCount();
+    const { entities, raw } = await qb.getRawAndEntities();
+    const items = entities.map((product, i) => ({
+      ...product,
+      avgRating: raw[i] ? parseFloat(raw[i].avgRating) || 0 : 0,
+      reviewCount: raw[i] ? parseInt(raw[i].reviewCount) || 0 : 0,
+    }));
 
-    const items = rawAndEntities.entities.map((product, i) => {
-      const raw = rawAndEntities.raw[i];
-      return {
-        ...product,
-        avgRating: parseFloat(raw?.avgRating ?? '0'),
-        reviewCount: parseInt(raw?.reviewCount ?? '0'),
-      };
-    });
+    // Umumiy sonni filter bilan hisoblash
+    const countQb = this.productRepo
+      .createQueryBuilder('product')
+      .leftJoin('product.category', 'category');
+    if (query.search) {
+      countQb.andWhere('(product.title ILIKE :search OR product.description ILIKE :search)', { search: `%${query.search}%` });
+    }
+    if (query.categoryId) countQb.andWhere('category.id = :categoryId', { categoryId: query.categoryId });
+    if (query.brand) countQb.andWhere('product.brand ILIKE :brand', { brand: query.brand });
+    if (query.minPrice !== undefined) countQb.andWhere('product.price >= :minPrice', { minPrice: query.minPrice });
+    if (query.maxPrice !== undefined) countQb.andWhere('product.price <= :maxPrice', { maxPrice: query.maxPrice });
+    if (query.inStock !== undefined) countQb.andWhere('product.inStock = :inStock', { inStock: query.inStock });
+    const total = await countQb.getCount();
 
     return { items, total, page, limit };
   }
@@ -123,18 +131,16 @@ export class ProductService {
       throw new NotFoundException(`Product with ID ${id} not found`);
     }
 
-    // Compute avgRating
     const avgRating = product.reviews?.length
-      ? product.reviews.reduce((s, r) => s + r.rating, 0) / product.reviews.length
+      ? product.reviews.reduce((sum, r) => sum + r.rating, 0) / product.reviews.length
       : 0;
 
-    return { ...product, avgRating: Math.round(avgRating * 10) / 10 };
+    return { ...product, avgRating: parseFloat(avgRating.toFixed(1)) };
   }
 
   async update(id: string, updateProductDto: UpdateProductDto, requester: any, files?: Express.Multer.File[]) {
-    const product = await this.productRepo.findOne({ where: { id }, relations: ['owner', 'images'] });
-    if (!product) throw new NotFoundException(`Product with ID ${id} not found`);
-
+    const product = await this.findOne(id);
+    
     if (product.owner.id !== requester.id && requester.role !== Role.ADMIN) {
       throw new ForbiddenException('You are not authorized to update this product');
     }
@@ -151,9 +157,7 @@ export class ProductService {
   }
 
   async findRelated(id: string, limit = 4) {
-    const product = await this.productRepo.findOne({ where: { id }, relations: ['category'] });
-    if (!product) throw new NotFoundException(`Product with ID ${id} not found`);
-
+    const product = await this.findOne(id);
     const qb = this.productRepo
       .createQueryBuilder('product')
       .leftJoinAndSelect('product.category', 'category')
@@ -174,7 +178,7 @@ export class ProductService {
       .createQueryBuilder('product')
       .select('product.brand', 'brand')
       .addSelect('COUNT(*)', 'count')
-      .where('product.brand IS NOT NULL AND product.brand != \'\'')
+      .where('product.brand IS NOT NULL')
       .groupBy('product.brand')
       .orderBy('count', 'DESC')
       .getRawMany();
@@ -186,8 +190,7 @@ export class ProductService {
   }
 
   async remove(id: string, requester: any) {
-    const product = await this.productRepo.findOne({ where: { id }, relations: ['owner'] });
-    if (!product) throw new NotFoundException(`Product with ID ${id} not found`);
+    const product = await this.findOne(id);
 
     if (product.owner.id !== requester.id && requester.role !== Role.ADMIN) {
       throw new ForbiddenException('You are not authorized to remove this product');

@@ -24,7 +24,7 @@ function AppContent() {
   const [wishlist, setWishlist] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('wishlist') || '[]');
-    } catch {
+    } catch (_e) {
       return [];
     }
   });
@@ -37,7 +37,7 @@ function AppContent() {
       const data = await api.getCart();
       const items = (data.items || []).map(mapCartItem);
       setCart(items);
-    } catch {
+    } catch (_e) {
       /* keep local cart */
     }
   }, [user]);
@@ -50,7 +50,7 @@ function AppContent() {
     try {
       const full = await api.getProduct(product.id);
       setSelectedProduct(mapProduct(full));
-    } catch {
+    } catch (_e) {
       setSelectedProduct(product);
     }
     setPage('product');
@@ -72,7 +72,7 @@ function AppContent() {
         await api.addToCart(product.id, 1);
         await syncCartFromApi();
         return;
-      } catch {
+      } catch (_e) {
         /* local fallback */
       }
     }
@@ -98,7 +98,7 @@ function AppContent() {
         await api.updateCartItem(item.cartItemId, qty);
         await syncCartFromApi();
         return;
-      } catch {
+      } catch (_e) {
         /* fallback */
       }
     }
@@ -113,7 +113,7 @@ function AppContent() {
         await api.removeFromCart(item.cartItemId);
         await syncCartFromApi();
         return;
-      } catch {
+      } catch (_e) {
         /* fallback */
       }
     }
