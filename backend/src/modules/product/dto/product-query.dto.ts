@@ -36,7 +36,7 @@ export class ProductQueryDto {
   inStock?: boolean;
 
   @IsOptional()
-  @IsIn(['price_asc', 'price_desc', 'createdAt', 'title'])
+  @IsIn(['price_asc', 'price_desc', 'createdAt', 'title', 'rating'])
   sort?: string;
 
   @IsOptional()
