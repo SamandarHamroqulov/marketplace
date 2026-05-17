@@ -1,79 +1,238 @@
-# Cyber Store
+# CyberStore Marketplace
 
-Monorepo: NestJS API (`backend/`) + React Vite storefront (`frontend/`).
+Fullstack marketplace project built with:
 
-## Structure
+* Backend: NestJS + TypeORM + PostgreSQL + Redis
+* Frontend: React + Vite
+* Docker & Docker Compose support
+* JWT Authentication
+* Swagger API Documentation
+* Redis Cache
 
+---
+
+# Tech Stack
+
+## Backend
+
+* NestJS
+* TypeORM
+* PostgreSQL
+* Redis
+* JWT Auth
+* Swagger
+* Docker
+
+## Frontend
+
+* React
+* Vite
+* Docker
+
+---
+
+# Project Structure
+
+```bash
+exam-8/
+├── backend/
+├── frontend/
+├── docker-compose.yml
+└── README.md
 ```
-backend/     NestJS API, PostgreSQL, Redis
-frontend/    React + Vite SPA
-docker-compose.yml
+
+---
+
+# Installation
+
+## Clone Repository
+
+```bash
+git clone <YOUR_GITHUB_REPOSITORY_URL>
+cd exam-8
 ```
 
-## Development
+---
 
-### Backend
+# Environment Variables
+
+## Backend `.env`
+
+Create file:
+
+```bash
+backend/.env
+```
+
+Example:
+
+```env
+PORT=3000
+NODE_ENV=development
+
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
+DB_NAME=cyberstore
+
+JWT_SECRET=super_secret_jwt_key
+JWT_EXPIRES_IN=7d
+
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USER=your_email@gmail.com
+MAIL_PASSWORD=your_password
+MAIL_FROM=CyberStore <your_email@gmail.com>
+```
+
+---
+
+## Frontend `.env`
+
+Create file:
+
+```bash
+frontend/.env
+```
+
+Example:
+
+```env
+VITE_API_URL=http://localhost:3000/api
+```
+
+---
+
+# Running Without Docker
+
+## Backend
 
 ```bash
 cd backend
-cp .env.example .env
 npm install
 npm run start:dev
 ```
 
-API port is set in `backend/.env` (`PORT`, default 3000). Example: `http://localhost:2000/api`  
-Swagger (dev): `http://localhost:<PORT>/api/docs`  
-Health: `http://localhost:<PORT>/api/health`
-
-Set `frontend/.env` → `VITE_BACKEND_URL` to the same host/port as backend.
-
-## Auth pages
-
-- **Sign in** — navbar “Sign in” or `/` → login page
-- **Register** — customer account (USER), email OTP verification
-- **Account** — profile and orders (logged-in users)
-- **Admin panel** — navbar “Admin” (ADMIN role only)
-
-### Create an admin user
-
-Register a user, then in PostgreSQL:
-
-```sql
-UPDATE users SET role = 'ADMIN', "isVerified" = true WHERE email = 'your@email.com';
-```
-
-Then sign in — you will be redirected to the admin panel.
-
-### Frontend
+## Frontend
 
 ```bash
 cd frontend
-cp .env.example .env
 npm install
 npm run dev
 ```
 
-App: `http://localhost:5173` (proxies `/api` and `/uploads` to backend)
+---
 
-### Root scripts
+# Running With Docker
+
+## Start All Services
 
 ```bash
-npm run dev:backend
-npm run dev:frontend
-npm run build
+docker compose up --build
 ```
 
-## Production (Docker)
+## Run In Background
 
 ```bash
-cp backend/.env.example backend/.env
-# Edit JWT_SECRET and mail settings in backend/.env
 docker compose up -d --build
 ```
 
-- Frontend: `http://localhost`
-- Backend: `http://localhost:3000/api`
+## Stop Containers
 
-## Product filters
+```bash
+docker compose down
+```
 
-`GET /api/products/all?search=iphone&categoryId=<uuid>&minPrice=100&maxPrice=2000&inStock=true&sort=price_desc&page=1&limit=20`
+---
+
+# Docker Services
+
+| Service    | Port |
+| ---------- | ---- |
+| Frontend   | 5173 |
+| Backend    | 3000 |
+| PostgreSQL | 5432 |
+| Redis      | 6379 |
+
+---
+
+# Swagger Documentation
+
+Swagger URL:
+
+```bash
+http://localhost:3000/api/docs
+```
+
+---
+
+# Useful Commands
+
+## Backend
+
+```bash
+npm run start:dev
+npm run build
+npm run start:prod
+npm run lint
+npm run test
+```
+
+## Frontend
+
+```bash
+npm run dev
+npm run build
+npm run preview
+```
+
+---
+
+# Common Docker Fix
+
+If you get this error:
+
+```bash
+npm ci can only install packages when your package.json and package-lock.json are in sync
+```
+
+Run:
+
+```bash
+cd backend
+npm install
+
+cd ../frontend
+npm install
+```
+
+Then rebuild:
+
+```bash
+docker compose up --build
+```
+
+---
+
+# Features
+
+* Authentication & Authorization
+* JWT Security
+* Redis Cache
+* PostgreSQL Database
+* REST API
+* Swagger Docs
+* Dockerized Infrastructure
+* Fullstack Architecture
+
+---
+
+# Author
+
+Samandar
+
+Instagram: @sama_coding
