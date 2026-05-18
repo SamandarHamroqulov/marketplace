@@ -49,7 +49,7 @@ services:
       - ./backend/.env
 
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
 
       DB_HOST: postgres
       REDIS_HOST: redis
@@ -80,7 +80,7 @@ services:
       - backend
 
     ports:
-      - "5174:5173"
+      - "5173:5173"
 
 volumes:
   pgdata:

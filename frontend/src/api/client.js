@@ -10,7 +10,7 @@ const scheduleTokenRefresh = () => {
   if (_refreshTimer) clearTimeout(_refreshTimer);
   _refreshTimer = setTimeout(async () => {
     try {
-      const res = await fetch(`${BASE_URL}/auth/refresh`, { method: 'POST', credentials: 'include' });
+      const res = await fetch(`${BASE_URL}/auth/refresh-token`, { method: 'POST', credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         if (data.accessToken) localStorage.setItem('token', data.accessToken);
@@ -32,7 +32,7 @@ const request = async (endpoint, options = {}) => {
   if (res.status === 401) {
     // Token muddati tugagan — refresh urinib ko'r
     try {
-      const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, { method: 'POST', credentials: 'include' });
+      const refreshRes = await fetch(`${BASE_URL}/auth/refresh-token`, { method: 'POST', credentials: 'include' });
       if (refreshRes.ok) {
         const refreshData = await refreshRes.json();
         if (refreshData.accessToken) {

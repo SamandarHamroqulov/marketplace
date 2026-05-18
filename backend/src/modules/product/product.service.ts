@@ -104,7 +104,6 @@ export class ProductService {
       reviewCount: raw[i] ? parseInt(raw[i].reviewCount) || 0 : 0,
     }));
 
-    // Umumiy sonni filter bilan hisoblash
     const countQb = this.productRepo
       .createQueryBuilder('product')
       .leftJoin('product.category', 'category');
@@ -140,7 +139,7 @@ export class ProductService {
 
   async update(id: string, updateProductDto: UpdateProductDto, requester: any, files?: Express.Multer.File[]) {
     const product = await this.findOne(id);
-    
+
     if (product.owner.id !== requester.id && requester.role !== Role.ADMIN) {
       throw new ForbiddenException('You are not authorized to update this product');
     }
