@@ -235,4 +235,6 @@ docker compose up --build
 
 Samandar
 
-Instagram: @sama_coding
+Instagram: @1.hamroqulov and @xamroqulovdev
+Telegram: @xamroqulovdev
+Linkedin: https://www.linkedin.com/in/samandar-hamroqulov-723202344/
