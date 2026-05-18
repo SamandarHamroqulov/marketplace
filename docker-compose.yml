@@ -51,8 +51,8 @@ services:
     environment:
       NODE_ENV: development
 
-      DB_HOST: postgres
-      REDIS_HOST: redis
+      DB_HOST: ${DB_HOST}
+      REDIS_HOST: ${REDIS_HOST}
 
     depends_on:
       postgres:
